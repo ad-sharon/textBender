@@ -52,70 +52,53 @@ export default function Translate({
     //runs if source and target are equal
     if (detectedLanguage === language) {
       toast.error(
-        "Source and target language cannot be the same. Please pick another language."
+        "Source and target language cannot be the same. Please pick another language.",
       );
       return;
     }
 
     try {
-      const translatorCapabilities = await self.ai.translator.capabilities();
-      const pairAvailable = translatorCapabilities.languagePairAvailable(
-        detectedLanguage,
-        language
-      );
+      const availability = await Translator.availability({
+        sourceLanguage: detectedLanguage,
+        targetLanguage: language,
+      });
 
-      if (pairAvailable === "no") {
-        toast.error("Sorry. Translation is not supported or your limit has been reached.");
+      if (availability === "unavailable") {
+        toast.error("Sorry. This language pair is not supported.");
         return;
       }
 
-      let translator;
-      if (pairAvailable === "readily") {
-        translator = await self.ai.translator.create({
-          sourceLanguage: detectedLanguage,
-          targetLanguage: language,
+      let loadingToast;
+      if (availability === "downloadable") {
+        loadingToast = toast.loading("Downloading language pair...", {
+          duration: Infinity,
         });
-      } else if (pairAvailable === "after-download") {
-        console.log(
-          "The language pair you requested is not available, we need to download it."
-        );
-        const loadingToast = toast.loading(
-          "Downloading language pair. This might take a while...",
-          {
-            duration: Infinity,
-          }
-        );
+      }
 
-        try {
-          translator = await self.ai.translator.create({
-            sourceLanguage: detectedLanguage,
-            targetLanguage: language,
-            monitor(m) {
-              m.addEventListener("downloadprogress", (e) => {
-                console.log(`Downloaded ${e.loaded} of ${e.total} bytes...`);
-              });
-            },
+      const translator = await Translator.create({
+        sourceLanguage: detectedLanguage,
+        targetLanguage: language,
+        monitor(m) {
+          m.addEventListener("downloadprogress", (e) => {
+            console.log(`Downloaded ${e.loaded} of ${e.total} bytes`);
           });
-          await translator.ready;
-          toast.dismiss(loadingToast);
-          toast.success("Download done!");
-        } catch (error) {
-          toast.dismiss(loadingToast);
-          console.error("Error downloading model:", error)
-          toast.error("Failed to download language pair.");
- 
-        }
+        },
+      });
+
+      await translator.ready;
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+        toast.success("Download done!");
       }
 
       setisLoading(true);
-      setTranslator(translator);
       handleClose();
       const result = await translator.translate(inputText);
       setisLoading(false);
       setTranslatedLanguage(language);
       setTranslatedText(result);
     } catch (error) {
-      console.error("Error translating text:", error, detectedLanguage, language);
+      console.error("Translation error:", error);
       toast.error("Failed to translate. Try again.");
     }
   };

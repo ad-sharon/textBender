@@ -17,36 +17,34 @@ export default function InputBox({
   //check if chrome ai is available/supported on client
   useEffect(() => {
     const checkSupport = async () => {
-      if ("ai" in self) {
-        let isSupported = [];
+      let isSupported = [];
 
-        if ("languageDetector" in self.ai) {
-          isSupported.push("Language Detection");
-          await initializeDetector();
-        }
-        if ("translator" in self.ai) {
-          isSupported.push("Translation");
-        }
-        if ("summarizer" in self.ai) {
-          isSupported.push("Summarization");
-        }
-        if (isSupported.length > 0) {
-          toast.success(
-            `Your browser supports the following features: ${isSupported.join(
-              ", "
-            )}!`,
-            {
-              duration: 2000,
-            }
-          );
-          setIsAvailable(true);
-        } 
-      }      else {
-          toast.error(
-            "Browser does not support Chrome AI APIs. Some features may not work. Try updating your Chrome to the latest version.",
-            { duration: 3000 }
-          );
-        }
+      if ("LanguageDetector" in self) {
+        isSupported.push("Language Detection");
+        await initializeDetector();
+      }
+      if ("Translator" in self) {
+        isSupported.push("Translation");
+      }
+      if ("Summarizer" in self) {
+        isSupported.push("Summarization");
+      }
+      if (isSupported.length > 0) {
+        setIsAvailable(true);
+        toast.success(
+          `Your browser supports the following features: ${isSupported.join(
+            ", ",
+          )}!`,
+          {
+            duration: 2000,
+          },
+        );
+      } else {
+        toast.error(
+          "Browser does not support Chrome AI APIs. Try updating your Chrome to the Chrome version 138+.",
+          { duration: 3000 },
+        );
+      }
     };
     checkSupport();
   }, []);
@@ -71,36 +69,28 @@ export default function InputBox({
 
   // initialize AI language detector if chrome AI is available/supported
   const initializeDetector = async () => {
-    try {
-      const languageDetectorCapabilities =
-        await self.ai.languageDetector.capabilities();
-      const canDetect = languageDetectorCapabilities.capabilities;
-
-      if (canDetect !== "no") {
-        const newDetector =
-          canDetect === "readily"
-            ? await self.ai.languageDetector.create()
-            : await self.ai.languageDetector.create({
-                monitor(m) {
-                  m.addEventListener("downloadprogress", (e) => {
-                    console.log(
-                      `Translator: Downloaded ${e.loaded} of ${e.total} bytes.`
-                    );
-                  });
-                },
-              });
-
-        if (canDetect !== "readily") await newDetector.ready;
-        setDetector(newDetector);
-      } else {
-        toast.error("Sorry. Language detection is not supported.");
-        setIsAvailable(false);
-      }
-    } catch (error) {
-      console.error("Error starting language detector: ", error);
-      toast.error("Error starting language detector. Try again.");
-      setIsAvailable(false);
+    if (!("LanguageDetector" in self)) {
+      toast.error("Language detection not supported.");
+      return;
     }
+
+    const availability = await LanguageDetector.availability();
+
+    if (availability === "unavailable") {
+      toast.error("Language detection not available on this device.");
+      return;
+    }
+
+    const newDetector = await LanguageDetector.create({
+      monitor(m) {
+        m.addEventListener("downloadprogress", (e) => {
+          console.log(`Downloaded ${e.loaded} of ${e.total} bytes`);
+        });
+      },
+    });
+
+    await newDetector.ready;
+    setDetector(newDetector);
   };
 
   //handle language detection of user input
