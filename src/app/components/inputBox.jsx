@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import send from "../../../public/send.svg";
 import { toast } from "react-hot-toast";
@@ -11,8 +11,36 @@ export default function InputBox({
   setTranslatedText,
 }) {
   const [inputText, setInputText] = useState("");
-  const [isAvailable, setIsAvailable] = useState(null);
   const [detector, setDetector] = useState(null);
+  const [isDetecting, setIsDetecting] = useState(false);
+
+  const initializeDetector = useCallback(async () => {
+    const availability = await LanguageDetector.availability();
+
+    if (availability === "unavailable") {
+      toast.error("Language detection not available on this device.");
+      return;
+    }
+
+    const newDetector = await LanguageDetector.create({
+      monitor(m) {
+        m.addEventListener("downloadprogress", (e) => {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          toast.loading(`Downloading model... ${percent}%`, { id: "download" });
+        });
+      },
+    });
+
+    await newDetector.ready;
+
+    toast.dismiss("download");
+
+    if (availability === "downloadable") {
+      toast.success("Download done!");
+    }
+
+    setDetector(newDetector);
+  }, []);
 
   //check if chrome ai is available/supported on client
   useEffect(() => {
@@ -30,7 +58,6 @@ export default function InputBox({
         isSupported.push("Summarization");
       }
       if (isSupported.length > 0) {
-        setIsAvailable(true);
         toast.success(
           `Your browser supports the following features: ${isSupported.join(
             ", ",
@@ -47,7 +74,7 @@ export default function InputBox({
       }
     };
     checkSupport();
-  }, []);
+  }, [initializeDetector]);
 
   //handle user input text changes
   const handleInputChange = (e) => {
@@ -66,37 +93,6 @@ export default function InputBox({
     }
   };
 
-  // initialize AI language detector if chrome AI is available/supported
-  const initializeDetector = async () => {
-    if (!("LanguageDetector" in self)) {
-      toast.error("Language detection not supported.");
-      return;
-    }
-
-    const availability = await LanguageDetector.availability();
-
-    if (availability === "unavailable") {
-      toast.error("Language detection not available on this device.");
-      return;
-    }
-
-    const newDetector = await LanguageDetector.create({
-      monitor(m) {
-        m.addEventListener("downloadprogress", (e) => {
-          const percent = Math.round((e.loaded / e.total) * 100);
-          toast.loading(`Downloading model... ${percent}%`, { id: "download" });
-        });
-      },
-    });
-
-    await newDetector.ready;
-    if (availability === "downloadable") {
-      toast.dismiss("download");
-      toast.success("Download done!");
-    }
-    setDetector(newDetector);
-  };
-
   //handle language detection of user input
   const detectLanguage = async () => {
     //runs if there's no input
@@ -108,7 +104,9 @@ export default function InputBox({
     }
 
     try {
-      if (isAvailable && detector) {
+      setIsDetecting(true);
+
+      if (detector) {
         // will run if browser AI detection is supported
         const result = await detector.detect(inputText);
         const detectedLanguage = result[0].detectedLanguage;
@@ -141,6 +139,7 @@ export default function InputBox({
       toast.error("Error detecting language.");
     } finally {
       setInputText("");
+      setIsDetecting(false);
     }
   };
 
@@ -157,8 +156,14 @@ export default function InputBox({
     >
       <textarea
         value={inputText}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            detectLanguage();
+          }
+        }}
         onChange={handleInputChange}
-        className="w-full  resize-none border-2 border-[var(--color-text-grey)] rounded-xl bg-transparent text-sm p-2 rounded-md "
+        className="w-full  resize-none border-2 border-[var(--color-text-grey)] rounded-xl bg-transparent text-sm p-2 "
         placeholder="Your text goes here..."
         rows={3}
         aria-label="input text here"
@@ -166,12 +171,14 @@ export default function InputBox({
       <button
         type="submit"
         aria-label="send button"
+        disabled={isDetecting}
         className="w-fit h-fit border bg-[var(--color-main)] hover:bg-[var(--color-lighter-main)] rounded-[50%] p-2"
       >
         <Image
           src={send}
           alt="send icon"
           aria-label="send icon"
+          priority
           className="w-7 h-7"
         ></Image>
       </button>

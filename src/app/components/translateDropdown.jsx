@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
 const targetLanguages = [
@@ -18,8 +18,11 @@ export default function Translate({
   setTranslatedText,
 }) {
   const [language, setLanguage] = useState("");
-  const [isLoading, setisLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [translatedLanguage, setTranslatedLanguage] = useState("");
+
+  const translatorRef = useRef(null);
+  const translatorPairRef = useRef("");
 
   // function to handle change of translation language
   const handleLanguageSelection = (e) => {
@@ -57,43 +60,55 @@ export default function Translate({
     }
 
     try {
-      const availability = await Translator.availability({
-        sourceLanguage: detectedLanguage,
-        targetLanguage: language,
-      });
-
-      if (availability === "unavailable") {
-        toast.error("Sorry. This language pair is not supported.");
-        return;
-      }
-
-      const translator = await Translator.create({
-        sourceLanguage: detectedLanguage,
-        targetLanguage: language,
-        monitor(m) {
-          m.addEventListener("downloadprogress", (e) => {
-            const percent = Math.round((e.loaded / e.total) * 100);
-            toast.loading(`Downloading language pair... ${percent}%`, {
-              id: "download",
-            });
-          });
-        },
-      });
-
-      await translator.ready;
-      if (availability === "downloadable") {
-        toast.dismiss("download");
-        toast.success("Download done!");
-      }
-
-      setisLoading(true);
+      setIsLoading(true);
       handleClose();
-      const result = await translator.translate(inputText);
-      setisLoading(false);
+
+      const pair = `${detectedLanguage}->${language}`;
+
+      // reuse cached translator if same pair
+      if (!translatorRef.current || translatorPairRef.current !== pair) {
+        const availability = await Translator.availability({
+          sourceLanguage: detectedLanguage,
+          targetLanguage: language,
+        });
+
+        if (availability === "unavailable") {
+          toast.error("Sorry. This language pair is not supported.");
+          return;
+        }
+
+        translatorRef.current = await Translator.create({
+          sourceLanguage: detectedLanguage,
+          targetLanguage: language,
+          monitor(m) {
+            m.addEventListener("downloadprogress", (e) => {
+              const percent = Math.round((e.loaded / e.total) * 100);
+              toast.loading(`Downloading language pair... ${percent}%`, {
+                id: "download",
+              });
+            });
+          },
+        });
+
+        await translatorRef.current.ready;
+
+        toast.dismiss("download");
+
+        if (availability === "downloadable") {
+          toast.success("Download done!");
+        }
+
+        translatorPairRef.current = pair;
+      }
+
+      const result = await translatorRef.current.translate(inputText);
       setTranslatedLanguage(language);
       setTranslatedText(result);
     } catch (error) {
+      console.error(error);
       toast.error("Failed to translate. Try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -128,8 +143,9 @@ export default function Translate({
 
         <button
           onClick={handleTranslation}
+          disabled={isLoading}
           aria-label="translate text button"
-          className="text-[0.8rem] w-full whitespace-nowrap cursor-pointer text-center border-2 border-[var(--color-main)] bg-[var(--color-main)] p-1 rounded-lg hover:bg-[var(--color-lighter-main)]"
+          className="text-[0.8rem] w-full whitespace-nowrap cursor-pointer text-center border-2 border-[var(--color-main)] bg-[var(--color-main)] p-1 rounded-lg hover:bg-[var(--color-lighter-main)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Translate text ({language})
         </button>
