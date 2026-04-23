@@ -14,20 +14,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <head>
-      <meta
-          httpEquiv="origin-trial"
-          content="An92Cn+zF0LljXPrwxnvojQqFCfTImoLdAJ4ilnN1TD7F9eUcC8YSBGcpOR6gpA4H2SpJVGUW21AMjre37iAyQIAAAB2eyJvcmlnaW4iOiJodHRwczovL2huZzEyLXRleHRiZW5kZXIudmVyY2VsLmFwcDo0NDMiLCJmZWF0dXJlIjoiVHJhbnNsYXRpb25BUEkiLCJleHBpcnkiOjE3NTMxNDI0MDAsImlzU3ViZG9tYWluIjp0cnVlfQ=="
-        />
-        <meta
-          httpEquiv="origin-trial"
-          content="Am/Lqnv0174l0+WE2zND4sLzxb6wRRhe5HKFyBv1v0dS4KunOb3lpniTCWpH+Ae5PYBEBLq8S1XTne4uLHr4rwsAAAB8eyJvcmlnaW4iOiJodHRwczovL2huZzEyLXRleHRiZW5kZXIudmVyY2VsLmFwcDo0NDMiLCJmZWF0dXJlIjoiTGFuZ3VhZ2VEZXRlY3Rpb25BUEkiLCJleHBpcnkiOjE3NDk1OTk5OTksImlzU3ViZG9tYWluIjp0cnVlfQ=="
-        />
-        <meta
-          httpEquiv="origin-trial"
-          content="AqGYginKlliC4fMuIKFPxeIxh/He+Xp3VSBZMRRgBGH5SxifvEhpL3XG8RQooGnaobL4RvJJU+G20q4sUPvW7gQAAAB6eyJvcmlnaW4iOiJodHRwczovL2huZzEyLXRleHRiZW5kZXIudmVyY2VsLmFwcDo0NDMiLCJmZWF0dXJlIjoiQUlTdW1tYXJpemF0aW9uQVBJIiwiZXhwaXJ5IjoxNzUzMTQyNDAwLCJpc1N1YmRvbWFpbiI6dHJ1ZX0="
-        />
-      </head>      
+      <head></head>
       <body
         className={`${inter.className} h-screen max-h-screen flex flex-col`}
       >
@@ -41,10 +28,9 @@ export default function RootLayout({ children }) {
             className="w-fit h-10 cursor-pointer"
           ></Image>
           <section className="flex itens-center">
-         
-          <h4 className="text-[0.8rem] w-fit text-center ">
-            Summarize | Translate | Detect Languages.
-          </h4>
+            <h4 className="text-[0.8rem] w-fit text-center ">
+              Summarize | Translate | Detect Languages.
+            </h4>
           </section>
 
           {/* <a

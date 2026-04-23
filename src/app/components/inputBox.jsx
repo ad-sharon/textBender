@@ -62,7 +62,6 @@ export default function InputBox({
         languageCode
       );
     } catch (error) {
-      console.error("Error converting language code to full:", error);
       return languageCode;
     }
   };
@@ -84,12 +83,17 @@ export default function InputBox({
     const newDetector = await LanguageDetector.create({
       monitor(m) {
         m.addEventListener("downloadprogress", (e) => {
-          console.log(`Downloaded ${e.loaded} of ${e.total} bytes`);
+          const percent = Math.round((e.loaded / e.total) * 100);
+          toast.loading(`Downloading model... ${percent}%`, { id: "download" });
         });
       },
     });
 
     await newDetector.ready;
+    if (availability === "downloadable") {
+      toast.dismiss("download");
+      toast.success("Download done!");
+    }
     setDetector(newDetector);
   };
 
@@ -134,7 +138,6 @@ export default function InputBox({
         localStorage.setItem("messages", JSON.stringify(updatedMessages));
       }
     } catch (error) {
-      console.error("Error detecting language.", error);
       toast.error("Error detecting language.");
     } finally {
       setInputText("");

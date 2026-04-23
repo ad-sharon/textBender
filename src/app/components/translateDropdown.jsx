@@ -19,7 +19,6 @@ export default function Translate({
 }) {
   const [language, setLanguage] = useState("");
   const [isLoading, setisLoading] = useState(false);
-  const [translator, setTranslator] = useState(null);
   const [translatedLanguage, setTranslatedLanguage] = useState("");
 
   // function to handle change of translation language
@@ -68,26 +67,22 @@ export default function Translate({
         return;
       }
 
-      let loadingToast;
-      if (availability === "downloadable") {
-        loadingToast = toast.loading("Downloading language pair...", {
-          duration: Infinity,
-        });
-      }
-
       const translator = await Translator.create({
         sourceLanguage: detectedLanguage,
         targetLanguage: language,
         monitor(m) {
           m.addEventListener("downloadprogress", (e) => {
-            console.log(`Downloaded ${e.loaded} of ${e.total} bytes`);
+            const percent = Math.round((e.loaded / e.total) * 100);
+            toast.loading(`Downloading language pair... ${percent}%`, {
+              id: "download",
+            });
           });
         },
       });
 
       await translator.ready;
-      if (loadingToast) {
-        toast.dismiss(loadingToast);
+      if (availability === "downloadable") {
+        toast.dismiss("download");
         toast.success("Download done!");
       }
 
@@ -98,12 +93,11 @@ export default function Translate({
       setTranslatedLanguage(language);
       setTranslatedText(result);
     } catch (error) {
-      console.error("Translation error:", error);
       toast.error("Failed to translate. Try again.");
     }
   };
 
-  const handleClose = async () => {
+  const handleClose = () => {
     setTranslatedText("");
   };
 
