@@ -10,9 +10,9 @@ Textbender is an AI-powered text processor built with React and Chrome's built-i
 
 ## Tech Stack
 
-- **React**
+- **Next.js**
 - **Chrome Built-in AI APIs**
-- - **Tailwind CSS**
+- **Tailwind CSS**
 
 ## Getting Started
 
